@@ -3,8 +3,11 @@
 Proyecto semanal 01 del bootcamp `bc-expressjs`.
 
 **Aprendiz:** Valentina Mendivil Correa
+
 **Ficha:** 3228973A
+
 **Dominio asignado:** Sala de videojuegos / Arcade
+
 **Entidades del dominio completo:** `machines`, `tokens`, `players`, `maintenance`
 
 ## ¿Qué hace este proyecto?
