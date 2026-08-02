@@ -1,18 +1,24 @@
 {
-  "name": "semana01-proyecto-arcade",
+  "name": "semana02-proyecto-arcade",
   "version": "1.0.0",
-  "description": "Proyecto semanal — Procesador de datos con Node.js + TypeScript (Dominio: Sala de videojuegos / Arcade)",
-  "engines": { "node": ">=22.0.0" },
+  "description": "Week 02 — API REST con Express 5 + TypeScript (Dominio: Sala de videojuegos / Arcade)",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "packageManager": "pnpm@10.34.5",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc --noEmit",
-    "start": "node dist/src/index.js"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "express": "5.1.0"
   },
   "devDependencies": {
+    "@types/express": "5.0.1",
     "@types/node": "22.15.21",
     "tsx": "4.19.4",
     "typescript": "5.8.3"
-  },
-  "type": "module"
+  }
 }

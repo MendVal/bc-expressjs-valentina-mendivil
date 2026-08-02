@@ -1,102 +1,86 @@
-# 🎮 Procesador de Inventario — Sala de Videojuegos / Arcade
-
-Proyecto semanal 01 del bootcamp `bc-expressjs`.
+# 🎮 API REST — Máquinas de Arcade (Semana 02)
 
 **Aprendiz:** Valentina Mendivil Correa
 
 **Ficha:** 3228973A
 
-**Dominio asignado:** Sala de videojuegos / Arcade
+**Dominio:** Sala de videojuegos / Arcade
 
-**Entidades del dominio completo:** `machines`, `tokens`, `players`, `maintenance`
+**Recurso implementado:** Machine
 
 ## ¿Qué hace este proyecto?
 
-Es una herramienta de línea de comandos que simula el sistema de inventario
-de una sala de videojuegos (arcade). Lee el catálogo de máquinas desde un
-archivo JSON, calcula estadísticas del inventario (precio promedio, máquina
-más cara/barata, cuántas están operativas vs. en mantenimiento) y genera un
-reporte. También permite filtrar el catálogo por categoría de juego desde la
-terminal.
+API REST construida con Express 5 + TypeScript que expone operaciones CRUD
+sobre el inventario de máquinas de una sala de videojuegos. Usa un array en
+memoria como almacenamiento temporal (sin base de datos todavía, eso llega
+en semanas posteriores).
 
-Esta semana el foco es practicar Node.js con TypeScript: módulos ESM,
-`async`/`await` para las operaciones de lectura/escritura de archivos, y
-manejo de errores con `try`/`catch`.
+## Por qué elegí `Machine` otra vez
 
-## Por qué elegí `Machine` como recurso
+Reutilicé el mismo recurso de la semana 01 porque sigue siendo el núcleo de
+mi dominio, y esta semana el objetivo es aprender a exponerlo vía HTTP con
+Express, no cambiar de recurso. Las demás entidades (`tokens`, `players`,
+`maintenance`) las iré incorporando cuando el tema de la semana lo pida
+(por ejemplo, relaciones entre recursos cuando lleguemos a base de datos).
 
-De las 4 entidades de mi dominio (`machines`, `tokens`, `players`,
-`maintenance`), usé `machines` porque encaja naturalmente con la estructura
-que pedía el material base de la semana (id, nombre, categoría, precio,
-stock, estado activo/inactivo). Las demás entidades del dominio las iré
-incorporando en semanas siguientes, según el tema que toque (por ejemplo,
-`players` y `tokens` probablemente aparezcan cuando lleguemos a
-persistencia con base de datos).
+## Endpoints
 
-### El recurso `Machine`
+| Método | Ruta | Descripción | Status |
+|--------|------|-------------|--------|
+| GET | `/api/v1/machines` | Listar todas las máquinas | 200 |
+| GET | `/api/v1/machines/:id` | Obtener una máquina por ID | 200 / 404 |
+| POST | `/api/v1/machines` | Crear una máquina nueva | 201 / 400 |
+| PUT | `/api/v1/machines/:id` | Actualizar una máquina | 200 / 404 / 400 |
+| DELETE | `/api/v1/machines/:id` | Eliminar una máquina | 204 / 404 |
 
-| Campo      | Tipo    | Qué representa |
-|------------|---------|-----------------|
-| `id`       | string  | Identificador único de la máquina |
-| `name`     | string  | Nombre del juego (ej. "Pac-Man", "Tekken 7") |
-| `category` | string  | Tipo de juego: `lucha`, `carreras`, `disparos`, `clasicos`, `baile`, `cabina` |
-| `price`    | number  | Costo en fichas/tokens por partida |
-| `stock`    | number  | Cuántas unidades de esa máquina hay en el local |
-| `active`   | boolean | `true` si está operativa, `false` si está en mantenimiento |
+## Validación
 
-## Estructura del proyecto
+Al crear o actualizar, se verifica que estén presentes los 5 campos:
+`name`, `category`, `price`, `stock`, `active`. Si falta alguno, responde
+`400` con la lista de campos faltantes.
 
-```
-├── data/
-│   └── machines.json     → catálogo de 12 máquinas de ejemplo
-├── src/
-│   ├── types.ts          → interfaces Machine, MachineSummary, Report
-│   ├── reader.ts         → lee y parsea data/machines.json
-│   ├── processor.ts      → filtra por categoría y calcula el resumen
-│   ├── writer.ts         → escribe output/report.json
-│   └── index.ts          → punto de entrada: orquesta todo el flujo
-├── package.json
-└── tsconfig.json
-```
-
-## Ejemplo de salida en consola
-
-```
-Reporte de la Sala de Videojuegos (Arcade)
------------------------------------------
-
-Filtro aplicado: lucha
-Total de máquinas: 3
-Operativas: 3 | En mantenimiento: 0
-Precio promedio por partida: $3
-Más cara: Tekken 7 ($3.5)
-Más barata: Street Fighter II ($2.5)
-Categorías: lucha
-
-Reporte guardado en: .../output/report.json
-```
-
-El reporte completo (con el detalle de cada máquina filtrada) queda guardado
-en `output/report.json` — esa carpeta no se sube al repo porque se genera
-cada vez que corres el proyecto.
-
-## Manejo de errores
-
-- Si `data/machines.json` no existe o no se puede leer, se lanza un error
-  descriptivo indicando la ruta que se intentó leer.
-- Si filtras por una categoría que no existe en el catálogo (ej.
-  `--category futbolito`), el programa te dice qué categorías sí están
-  disponibles en lugar de simplemente fallar sin explicación.
-
-  ## Cómo correrlo
+## Cómo correrlo
 
 ```bash
-pnpm install  # instala dependencias
-pnpm dev   # corre el proyecto sin filtro
-pnpm dev -- --category lucha # corre filtrando solo la categoría "lucha"
-pnpm build  # verifica que compile sin errores de TypeScript
+pnpm install
+pnpm dev   
+pnpm build   
 ```
 
-Categorías disponibles en el catálogo de ejemplo: `lucha`, `carreras`,
-`disparos`, `clasicos`, `baile`, `cabina`.
+## Cómo probarlo con curl
 
+```bash
+curl http://localhost:3000/api/v1/machines
+
+curl -X POST http://localhost:3000/api/v1/machines \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Tekken 7","category":"lucha","price":3.5,"stock":1,"active":true}'
+
+curl http://localhost:3000/api/v1/machines/1
+
+curl -X PUT http://localhost:3000/api/v1/machines/1 \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Tekken 7 Turbo","category":"lucha","price":4,"stock":2,"active":true}'
+
+curl -X DELETE http://localhost:3000/api/v1/machines/1
+```
+
+## Evidencia de pruebas (Thunder Client)
+También probado con Thunder Client (capturas de las 5 operaciones incluidas
+en la entrega).
+
+Capturas de las 5 operaciones CRUD en la carpeta `capturas/`:
+- `01-get-all.png` — GET /api/v1/machines (200)
+- `02-get-by-id.png` — GET /api/v1/machines/:id (200)
+- `03-post.png` — POST /api/v1/machines (201)
+- `04-put.png` — PUT /api/v1/machines/:id (200)
+- `05-delete.png` — DELETE /api/v1/machines/:id (204)
+
+
+## Middlewares (en orden)
+
+1. `express.json()` — parseo del body
+2. Logger personalizado — imprime método, ruta, status y duración
+3. Rutas de `machines`
+4. Handler 404 para rutas no encontradas
+5. Error handler global (4 parámetros, siempre al final)
