@@ -1,4 +1,4 @@
-# 🎮 API REST — Máquinas de Arcade (Semana 02)
+# 🎮 API REST en 4 Capas — Máquinas de Arcade (Semana 03)
 
 **Aprendiz:** Valentina Mendivil Correa
 
@@ -10,47 +10,57 @@
 
 ## ¿Qué hace este proyecto?
 
-API REST construida con Express 5 + TypeScript que expone operaciones CRUD
-sobre el inventario de máquinas de una sala de videojuegos. Usa un array en
-memoria como almacenamiento temporal (sin base de datos todavía, eso llega
-en semanas posteriores).
+API REST con arquitectura en 4 capas (`routes → controllers → services →
+repositories`) sobre el inventario de máquinas arcade, con paginación y
+contratos de respuesta consistentes.
 
-## Por qué elegí `Machine` otra vez
+## Arquitectura
 
-Reutilicé el mismo recurso de la semana 01 porque sigue siendo el núcleo de
-mi dominio, y esta semana el objetivo es aprender a exponerlo vía HTTP con
-Express, no cambiar de recurso. Las demás entidades (`tokens`, `players`,
-`maintenance`) las iré incorporando cuando el tema de la semana lo pida
-(por ejemplo, relaciones entre recursos cuando lleguemos a base de datos).
+- **`repositories/`** — única capa que toca el "store" en memoria. Todos
+  los métodos son `async` y devuelven copias defensivas (nunca la
+  referencia interna del array), para que nadie pueda mutar los datos por
+  fuera de esta capa.
+- **`services/`** — lógica de negocio, sin ningún import de Express. Aquí
+  vive la paginación (`page`/`limit`).
+- **`controllers/`** — "thin controllers": cada función tiene exactamente
+  3 pasos (extraer datos → llamar al service → responder). No hay
+  cálculos ni validaciones de dominio aquí.
+- **`routes/`** — solo mapea `URL + método HTTP` a la función del
+  controller correspondiente.
 
-## Endpoints
+## Endpoints y contratos
 
 | Método | Ruta | Descripción | Status |
 |--------|------|-------------|--------|
-| GET | `/api/v1/machines` | Listar todas las máquinas | 200 |
-| GET | `/api/v1/machines/:id` | Obtener una máquina por ID | 200 / 404 |
-| POST | `/api/v1/machines` | Crear una máquina nueva | 201 / 400 |
-| PUT | `/api/v1/machines/:id` | Actualizar una máquina | 200 / 404 / 400 |
-| DELETE | `/api/v1/machines/:id` | Eliminar una máquina | 204 / 404 |
+| GET | `/api/v1/machines?page=1&limit=10` | Listar con paginación | 200 |
+| GET | `/api/v1/machines/:id` | Obtener por ID | 200 / 404 |
+| POST | `/api/v1/machines` | Crear | 201 |
+| PUT | `/api/v1/machines/:id` | Actualizar | 200 / 404 |
+| DELETE | `/api/v1/machines/:id` | Eliminar | 204 / 404 |
 
-## Validación
+```json
+// GET /machines?page=1&limit=2 → 200
+{ "data": [...], "total": 4, "page": 1, "limit": 2 }
 
-Al crear o actualizar, se verifica que estén presentes los 5 campos:
-`name`, `category`, `price`, `stock`, `active`. Si falta alguno, responde
-`400` con la lista de campos faltantes.
+// GET /machines/1 → 200
+{ "data": { "id": 1, "name": "Street Fighter II", ... } }
+
+// GET /machines/999 → 404
+{ "error": "Not Found", "message": "Machine 999 not found" }
+```
 
 ## Cómo correrlo
 
 ```bash
 pnpm install
-pnpm dev   
-pnpm build   
+pnpm dev     
+pnpm build  
 ```
 
 ## Cómo probarlo con curl
 
 ```bash
-curl http://localhost:3000/api/v1/machines
+curl "http://localhost:3000/api/v1/machines?page=1&limit=2"
 
 curl -X POST http://localhost:3000/api/v1/machines \
   -H "Content-Type: application/json" \
@@ -60,27 +70,17 @@ curl http://localhost:3000/api/v1/machines/1
 
 curl -X PUT http://localhost:3000/api/v1/machines/1 \
   -H "Content-Type: application/json" \
-  -d '{"name":"Tekken 7 Turbo","category":"lucha","price":4,"stock":2,"active":true}'
+  -d '{"price":3}'
 
 curl -X DELETE http://localhost:3000/api/v1/machines/1
 ```
 
-## Evidencia de pruebas (Thunder Client)
-También probado con Thunder Client (capturas de las 5 operaciones incluidas
-en la entrega).
+## Evidencia de pruebas
 
-Capturas de las 5 operaciones CRUD en la carpeta `capturas/`:
-- `01-get-all.png` — GET /api/v1/machines (200)
+Capturas en la carpeta `capturas/`:
+- `01-get-all-paginado.png` — GET /api/v1/machines?page=1&limit=2 (200, con paginación)
 - `02-get-by-id.png` — GET /api/v1/machines/:id (200)
 - `03-post.png` — POST /api/v1/machines (201)
 - `04-put.png` — PUT /api/v1/machines/:id (200)
 - `05-delete.png` — DELETE /api/v1/machines/:id (204)
-
-
-## Middlewares (en orden)
-
-1. `express.json()` — parseo del body
-2. Logger personalizado — imprime método, ruta, status y duración
-3. Rutas de `machines`
-4. Handler 404 para rutas no encontradas
-5. Error handler global (4 parámetros, siempre al final)
+- `06-build-sin-errores.png` — `pnpm build` compilando sin errores TypeScript

@@ -1,5 +1,3 @@
-
-
 export interface Machine {
   id: number;
   name: string; // nombre del juego, ej. "Pac-Man"
@@ -7,19 +5,33 @@ export interface Machine {
   price: number; // costo en fichas por partida
   stock: number; // unidades físicas en el local
   active: boolean; // true = operativa, false = en mantenimiento
+  createdAt: string;
 }
 
-// DTO para crear una máquina (sin id, se genera automáticamente)
-export type CreateMachineDto = Omit<Machine, 'id'>;
+// DTO para crear — sin campos auto-generados
+export type CreateMachineDto = Omit<Machine, 'id' | 'createdAt'>;
 
-// DTO para actualización (todos los campos editables, opcionales)
+// DTO para actualizar — todos los campos opcionales
 export type UpdateMachineDto = Partial<CreateMachineDto>;
 
-// Campos obligatorios al crear una máquina — usado para la validación básica
-export const REQUIRED_FIELDS: (keyof CreateMachineDto)[] = [
-  'name',
-  'category',
-  'price',
-  'stock',
-  'active',
-];
+// Contratos de respuesta (nombres genéricos exigidos por la especificación)
+export interface SingleResponse<T> {
+  data: T;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ErrorResponse {
+  error: string;
+  message: string;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}

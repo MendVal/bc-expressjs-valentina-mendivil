@@ -1,20 +1,9 @@
-import { createApp } from './app';
+import app from './app';
 
-const PORT = process.env.PORT ?? '3000';
-const app = createApp();
+const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 
-const server = app.listen(Number(PORT), () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`[server] Running on http://localhost:${PORT}`);
+  console.log(`[server] Health: http://localhost:${PORT}/health`);
+  console.log(`[server] API v1: http://localhost:${PORT}/api/v1/machines`);
 });
-
-// Graceful shutdown: cierra el servidor limpiamente ante SIGTERM o SIGINT
-function shutdown(signal: string): void {
-  console.log(`\n${signal} recibido. Cerrando servidor...`);
-  server.close(() => {
-    console.log('Servidor cerrado correctamente.');
-    process.exit(0);
-  });
-}
-
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
