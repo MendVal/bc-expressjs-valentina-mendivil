@@ -1,4 +1,5 @@
-import { Machine, CreateMachineDto, UpdateMachineDto } from '../types';
+import { Machine } from '../types';
+import { CreateMachineDto, UpdateMachineDto } from '../schemas/machine.schema';
 
 const store: Machine[] = [
   {
@@ -57,18 +58,14 @@ export async function create(dto: CreateMachineDto): Promise<Machine> {
 
 export async function update(id: number, dto: UpdateMachineDto): Promise<Machine | undefined> {
   const index = store.findIndex((item) => item.id === id);
-  if (index === -1) {
-    return undefined;
-  }
+  if (index === -1) return undefined;
   store[index] = { ...store[index]!, ...dto };
   return { ...store[index]! };
 }
 
 export async function remove(id: number): Promise<boolean> {
   const index = store.findIndex((item) => item.id === id);
-  if (index === -1) {
-    return false;
-  }
+  if (index === -1) return false;
   store.splice(index, 1);
   return true;
 }

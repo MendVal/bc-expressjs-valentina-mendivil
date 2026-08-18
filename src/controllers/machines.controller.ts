@@ -1,18 +1,29 @@
+
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import * as service from '../services/machines.service';
-import { CreateMachineDto, UpdateMachineDto, ErrorResponse } from '../types';
+import { createMachineSchema, updateMachineSchema } from '../schemas/machine.schema';
+import { SingleResponse, PaginatedResponse, ValidationErrorResponse } from '../types';
+
+// Schema para validar el :id de la ruta
+const idSchema = z.coerce.number().int().positive({
+  message: 'El id debe ser un número entero positivo',
+});
+
+// Helper para no duplicar el formateo de issues de Zod
+function formatIssues(error: z.ZodError): Array<{ field: string; message: string }> {
+  return error.issues.map((issue) => ({
+    field: issue.path.join('.') || 'id',
+    message: issue.message,
+  }));
+}
 
 export async function getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Paso 1 — extraer page y limit de req.query (con fallbacks 1 y 10)
     const page = Number(req.query['page']) || 1;
     const limit = Number(req.query['limit']) || 10;
-
-    // Paso 2 — llamar service.findAll({ page, limit })
     const result = await service.findAll({ page, limit });
-
-    // Paso 3 — responder
-    res.json(result);
+    res.json(result satisfies PaginatedResponse<typeof result.data[number]>);
   } catch (err) {
     next(err);
   }
@@ -20,19 +31,18 @@ export async function getAll(req: Request, res: Response, next: NextFunction): P
 
 export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Paso 1 — extraer id de req.params, parsearlo a número
-    const id = Number(req.params['id']);
-
-    // Paso 2 — llamar service.findById(id)
-    const machine = await service.findById(id);
-
-    // Paso 3 — responder
-    if (!machine) {
-      const response: ErrorResponse = { error: 'Not Found', message: `Machine ${id} not found` };
-      res.status(404).json(response);
+    const parsedId = idSchema.safeParse(req.params['id']);
+    if (!parsedId.success) {
+      const response: ValidationErrorResponse = {
+        error: 'Validation Error',
+        message: 'Parámetro inválido',
+        issues: formatIssues(parsedId.error),
+      };
+      res.status(400).json(response);
       return;
     }
-    res.json({ data: machine });
+    const machine = await service.findById(parsedId.data);
+    res.json({ data: machine } satisfies SingleResponse<typeof machine>);
   } catch (err) {
     next(err);
   }
@@ -40,14 +50,18 @@ export async function getById(req: Request, res: Response, next: NextFunction): 
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    
-    const dto = req.body as CreateMachineDto;
-
-    
-    const machine = await service.create(dto);
-
-    
-    res.status(201).json({ data: machine });
+    const result = createMachineSchema.safeParse(req.body);
+    if (!result.success) {
+      const response: ValidationErrorResponse = {
+        error: 'Validation Error',
+        message: 'Datos de entrada inválidos',
+        issues: formatIssues(result.error),
+      };
+      res.status(400).json(response);
+      return;
+    }
+    const machine = await service.create(result.data);
+    res.status(201).json({ data: machine } satisfies SingleResponse<typeof machine>);
   } catch (err) {
     next(err);
   }
@@ -55,20 +69,28 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Paso 1 — extraer id de params y dto del body
-    const id = Number(req.params['id']);
-    const dto = req.body as UpdateMachineDto;
-
-    // Paso 2 — llamar service.update(id, dto)
-    const machine = await service.update(id, dto);
-
-    // Paso 3 — responder
-    if (!machine) {
-      const response: ErrorResponse = { error: 'Not Found', message: `Machine ${id} not found` };
-      res.status(404).json(response);
+    const parsedId = idSchema.safeParse(req.params['id']);
+    if (!parsedId.success) {
+      const response: ValidationErrorResponse = {
+        error: 'Validation Error',
+        message: 'Parámetro inválido',
+        issues: formatIssues(parsedId.error),
+      };
+      res.status(400).json(response);
       return;
     }
-    res.json({ data: machine });
+    const result = updateMachineSchema.safeParse(req.body);
+    if (!result.success) {
+      const response: ValidationErrorResponse = {
+        error: 'Validation Error',
+        message: 'Datos de entrada inválidos',
+        issues: formatIssues(result.error),
+      };
+      res.status(400).json(response);
+      return;
+    }
+    const machine = await service.update(parsedId.data, result.data);
+    res.json({ data: machine } satisfies SingleResponse<typeof machine>);
   } catch (err) {
     next(err);
   }
@@ -76,18 +98,17 @@ export async function update(req: Request, res: Response, next: NextFunction): P
 
 export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Paso 1 — extraer id de params
-    const id = Number(req.params['id']);
-
-    // Paso 2 — llamar service.remove(id)
-    const deleted = await service.remove(id);
-
-    // Paso 3 — responder
-    if (!deleted) {
-      const response: ErrorResponse = { error: 'Not Found', message: `Machine ${id} not found` };
-      res.status(404).json(response);
+    const parsedId = idSchema.safeParse(req.params['id']);
+    if (!parsedId.success) {
+      const response: ValidationErrorResponse = {
+        error: 'Validation Error',
+        message: 'Parámetro inválido',
+        issues: formatIssues(parsedId.error),
+      };
+      res.status(400).json(response);
       return;
     }
+    await service.remove(parsedId.data);
     res.status(204).send();
   } catch (err) {
     next(err);

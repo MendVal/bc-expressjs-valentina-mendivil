@@ -1,26 +1,28 @@
 
 import express from 'express';
+import { morganMiddleware } from './config/logger';
 import { machinesRouter } from './routes/machines.routes';
-import { ErrorResponse } from './types';
+import { notFound } from './middlewares/notFound';
+import { errorHandler } from './middlewares/errorHandler';
 
 const app = express();
 
+// 1. Middlewares generales
 app.use(express.json());
+app.use(morganMiddleware);
 
+// Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', week: '03', project: 'api-arquitectura' });
+  res.json({ status: 'ok', week: '04', project: 'validacion-errores-logging' });
 });
 
+// 2. Rutas del dominio
 app.use('/api/v1/machines', machinesRouter);
 
-// Error handler — no modificar
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err.message);
-  const response: ErrorResponse = {
-    error: 'Internal Server Error',
-    message: err.message,
-  };
-  res.status(500).json(response);
-});
+// 3. notFound DESPUÉS de todas las rutas
+app.use(notFound);
+
+// 4. errorHandler como ÚLTIMO middleware (4 parámetros)
+app.use(errorHandler);
 
 export default app;

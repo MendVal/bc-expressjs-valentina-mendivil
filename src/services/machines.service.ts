@@ -1,4 +1,5 @@
-import { CreateMachineDto, UpdateMachineDto, Machine, PaginatedResponse, PaginationParams } from '../types';
+import { Machine, PaginatedResponse, PaginationParams } from '../types';
+import { CreateMachineDto, UpdateMachineDto } from '../schemas/machine.schema';
 import * as repo from '../repositories/machines.repository';
 
 export async function findAll(params: PaginationParams): Promise<PaginatedResponse<Machine>> {

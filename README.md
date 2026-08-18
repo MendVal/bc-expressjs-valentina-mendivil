@@ -1,86 +1,51 @@
-# 🎮 API REST en 4 Capas — Máquinas de Arcade (Semana 03)
+# 🎮 Semana 04 — Validación, Errores y Logging
 
-**Aprendiz:** Valentina Mendivil Correa
+**Dominio asignado:** Sala de videojuegos / Arcade
 
-**Ficha:** 3228973A
+**Recurso principal:** `Machine` (máquina arcade)
 
-**Dominio:** Sala de videojuegos / Arcade
+## Campos del recurso
 
-**Recurso implementado:** Machine
+| Campo | Tipo | Validación |
+|---|---|---|
+| `name` | string | obligatorio, no vacío |
+| `category` | enum | uno de: lucha, carreras, clasicos, disparos, baile, cabina |
+| `price` | number | obligatorio, mayor a 0 |
+| `stock` | number | entero, no negativo, default 0 |
+| `active` | boolean | default true |
 
-## ¿Qué hace este proyecto?
+Schemas en `src/schemas/machine.schema.ts` con Zod (`createMachineSchema` y `updateMachineSchema` vía `.partial()`), tipos inferidos con `z.infer<>`.
 
-API REST con arquitectura en 4 capas (`routes → controllers → services →
-repositories`) sobre el inventario de máquinas arcade, con paginación y
-contratos de respuesta consistentes.
+## Manejo de errores
 
-## Arquitectura
+- `AppError` (`src/errors/AppError.ts`): extiende `Error`, con `statusCode` e `isOperational`.
+- `notFound` (`src/middlewares/notFound.ts`): captura rutas no registradas → 404.
+- `errorHandler` (`src/middlewares/errorHandler.ts`): 4 parámetros, distingue `ZodError` (400), `AppError` (statusCode propio) y errores genéricos (500, sin stack en producción).
 
-- **`repositories/`** — única capa que toca el "store" en memoria. Todos
-  los métodos son `async` y devuelven copias defensivas (nunca la
-  referencia interna del array), para que nadie pueda mutar los datos por
-  fuera de esta capa.
-- **`services/`** — lógica de negocio, sin ningún import de Express. Aquí
-  vive la paginación (`page`/`limit`).
-- **`controllers/`** — "thin controllers": cada función tiene exactamente
-  3 pasos (extraer datos → llamar al service → responder). No hay
-  cálculos ni validaciones de dominio aquí.
-- **`routes/`** — solo mapea `URL + método HTTP` a la función del
-  controller correspondiente.
+## Logging
 
-## Endpoints y contratos
+- Winston configurado en `src/config/logger.ts`: nivel `http` en desarrollo, `warn` en producción; formato colorizado en dev, JSON en producción; archivo `logs/error.log` solo en producción.
+- Morgan integrado como middleware, escribe hacia `logger.http()`.
 
-| Método | Ruta | Descripción | Status |
-|--------|------|-------------|--------|
-| GET | `/api/v1/machines?page=1&limit=10` | Listar con paginación | 200 |
-| GET | `/api/v1/machines/:id` | Obtener por ID | 200 / 404 |
-| POST | `/api/v1/machines` | Crear | 201 |
-| PUT | `/api/v1/machines/:id` | Actualizar | 200 / 404 |
-| DELETE | `/api/v1/machines/:id` | Eliminar | 204 / 404 |
+## Endpoints
 
-```json
-// GET /machines?page=1&limit=2 → 200
-{ "data": [...], "total": 4, "page": 1, "limit": 2 }
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/v1/machines` | Listar con paginación (`?page&limit`) |
+| GET | `/api/v1/machines/:id` | Obtener por id |
+| POST | `/api/v1/machines` | Crear (valida con Zod) |
+| PUT | `/api/v1/machines/:id` | Actualizar parcial |
+| DELETE | `/api/v1/machines/:id` | Eliminar |
 
-// GET /machines/1 → 200
-{ "data": { "id": 1, "name": "Street Fighter II", ... } }
-
-// GET /machines/999 → 404
-{ "error": "Not Found", "message": "Machine 999 not found" }
-```
-
-## Cómo correrlo
+## Cómo ejecutar
 
 ```bash
 pnpm install
-pnpm dev     
-pnpm build  
+pnpm dev      
+pnpm build    
+pnpm start    
 ```
 
-## Cómo probarlo con curl
+## Capturas
 
-```bash
-curl "http://localhost:3000/api/v1/machines?page=1&limit=2"
-
-curl -X POST http://localhost:3000/api/v1/machines \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Tekken 7","category":"lucha","price":3.5,"stock":1,"active":true}'
-
-curl http://localhost:3000/api/v1/machines/1
-
-curl -X PUT http://localhost:3000/api/v1/machines/1 \
-  -H "Content-Type: application/json" \
-  -d '{"price":3}'
-
-curl -X DELETE http://localhost:3000/api/v1/machines/1
-```
-
-## Evidencia de pruebas
-
-Capturas en la carpeta `capturas/`:
-- `01-get-all-paginado.png` — GET /api/v1/machines?page=1&limit=2 (200, con paginación)
-- `02-get-by-id.png` — GET /api/v1/machines/:id (200)
-- `03-post.png` — POST /api/v1/machines (201)
-- `04-put.png` — PUT /api/v1/machines/:id (200)
-- `05-delete.png` — DELETE /api/v1/machines/:id (204)
-- `06-build-sin-errores.png` — `pnpm build` compilando sin errores TypeScript
+Ver carpeta `capturas/`: validación 400 con issues, id no numérico, 404 recurso inexistente, 404 de ruta inexistente y logs en consola.
