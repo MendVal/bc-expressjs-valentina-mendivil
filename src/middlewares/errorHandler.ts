@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError';
 import { logger } from '../config/logger';
-import { ErrorResponse, ValidationErrorResponse } from '../types';
 
 export function errorHandler(
   err: unknown,
@@ -14,38 +14,43 @@ export function errorHandler(
 
   // 1. Errores de validación de Zod
   if (err instanceof ZodError) {
-    const response: ValidationErrorResponse = {
+    res.status(400).json({
       error: 'Validation Error',
       message: 'Datos de entrada inválidos',
       issues: err.issues.map((issue) => ({
         field: issue.path.join('.') || 'root',
         message: issue.message,
       })),
-    };
-    res.status(400).json(response);
+    });
     return;
   }
 
-  // 2. Errores de dominio (operacionales)
-  if (err instanceof AppError) {
-    logger.warn(`AppError ${err.statusCode}: ${err.message}`);
-    const response: ErrorResponse = {
-      error: 'Application Error',
-      message: err.message,
-    };
-    res.status(err.statusCode).json(response);
+  // 2. Traducir errores conocidos de Prisma a AppError
+  let error: unknown = err;
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2025') {
+      error = new AppError(404, 'Recurso no encontrado');
+    } else if (err.code === 'P2002') {
+      const fields = (err.meta?.['target'] as string[] | undefined)?.join(', ') ?? 'campo único';
+      error = new AppError(409, `Ya existe un registro con ese valor (${fields})`);
+    }
+  }
+
+  // 3. Errores de dominio (AppError, incluye los traducidos de Prisma)
+  if (error instanceof AppError) {
+    logger.warn(`AppError ${error.statusCode}: ${error.message}`);
+    res.status(error.statusCode).json({ error: 'Application Error', message: error.message });
     return;
   }
 
-  // 3. Error genérico / no controlado
-  const message = err instanceof Error ? err.message : 'Error desconocido';
-  const stack = err instanceof Error ? err.stack : undefined;
+  // 4. Error genérico / no controlado
+  const message = error instanceof Error ? error.message : 'Error desconocido';
+  const stack = error instanceof Error ? error.stack : undefined;
   logger.error(`Unhandled error: ${message}`);
 
-  const response: ErrorResponse = {
+  res.status(500).json({
     error: 'Internal Server Error',
     message: 'Ha ocurrido un error inesperado',
     ...(isProduction ? {} : { stack }),
-  };
-  res.status(500).json(response);
+  });
 }

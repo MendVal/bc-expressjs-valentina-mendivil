@@ -1,13 +1,3 @@
-export interface Machine {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  stock: number;
-  active: boolean;
-  createdAt: string;
-}
-
 export interface SingleResponse<T> {
   data: T;
 }

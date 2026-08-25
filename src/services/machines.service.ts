@@ -1,35 +1,32 @@
-import { Machine, PaginatedResponse, PaginationParams } from '../types';
-import { CreateMachineDto, UpdateMachineDto } from '../schemas/machine.schema';
+// ============================================
+// SERVICE — lógica de negocio
+// ============================================
 import * as repo from '../repositories/machines.repository';
+import { CreateMachineDto, UpdateMachineDto } from '../schemas/machine.schema';
+import { AppError } from '../errors/AppError';
 
-export async function findAll(params: PaginationParams): Promise<PaginatedResponse<Machine>> {
-  const { page, limit } = params;
-  const all = await repo.findAll();
-  const start = (page - 1) * limit;
-  const data = all.slice(start, start + limit);
-  return { data, total: all.length, page, limit };
+export async function findAll(page: number, limit: number) {
+  const skip = (page - 1) * limit;
+  const { data, total } = await repo.findAll(skip, limit);
+  return { data, total, page, limit };
 }
 
-export async function findById(id: number): Promise<Machine | undefined> {
-  return repo.findById(id);
+export async function findById(id: number) {
+  const machine = await repo.findById(id);
+  if (!machine) {
+    throw new AppError(404, `Machine ${id} not found`);
+  }
+  return machine;
 }
 
-export async function create(dto: CreateMachineDto): Promise<Machine> {
+export async function create(dto: CreateMachineDto) {
   return repo.create(dto);
 }
 
-export async function update(id: number, dto: UpdateMachineDto): Promise<Machine | undefined> {
-  const exists = await repo.findById(id);
-  if (!exists) {
-    return undefined;
-  }
+export async function update(id: number, dto: UpdateMachineDto) {
   return repo.update(id, dto);
 }
 
-export async function remove(id: number): Promise<boolean> {
-  const exists = await repo.findById(id);
-  if (!exists) {
-    return false;
-  }
-  return repo.remove(id);
+export async function remove(id: number): Promise<void> {
+  await repo.remove(id);
 }

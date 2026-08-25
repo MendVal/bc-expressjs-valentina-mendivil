@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { morganMiddleware } from './config/logger';
 import { machinesRouter } from './routes/machines.routes';
@@ -13,7 +12,7 @@ app.use(morganMiddleware);
 
 // Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', week: '04', project: 'validacion-errores-logging' });
+  res.json({ status: 'ok', week: '05', project: 'postgresql-prisma' });
 });
 
 // 2. Rutas del dominio

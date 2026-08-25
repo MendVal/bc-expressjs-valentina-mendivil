@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: arcade-db-week05
+    environment:
+      POSTGRES_USER: bootcamp
+      POSTGRES_PASSWORD: bootcamp123
+      POSTGRES_DB: bootcamp_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_week05:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data_week05:

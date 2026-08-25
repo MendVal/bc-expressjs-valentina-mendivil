@@ -1,7 +1,7 @@
 {
   "name": "semana03-proyecto-arcade",
   "version": "1.0.0",
-  "description": "Week 03 — API REST con arquitectura en 4 capas (Dominio: Sala de videojuegos / Arcade)",
+  "description": "Week 05 — PostgreSQL + Prisma ORM (Dominio: Sala de videojuegos / Arcade)",
   "main": "dist/server.js",
   "engines": {
     "node": ">=22.0.0"
@@ -10,9 +10,14 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "6.8.2",
     "express": "5.1.0",
     "morgan": "^1.11.0",
     "winston": "^3.19.0",
@@ -22,6 +27,7 @@
     "@types/express": "5.0.1",
     "@types/morgan": "^1.9.10",
     "@types/node": "22.15.3",
+    "prisma": "6.8.2",
     "tsx": "4.19.4",
     "typescript": "5.8.3"
   }
