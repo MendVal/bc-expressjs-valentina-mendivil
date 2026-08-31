@@ -1,27 +1,19 @@
 import express from 'express';
-import { morganMiddleware } from './config/logger';
-import { machinesRouter } from './routes/machines.routes';
-import { notFound } from './middlewares/notFound';
+import machineCategoryRouter from './routes/machineCategory.routes';
+import machineRouter from './routes/machine.routes';
 import { errorHandler } from './middlewares/errorHandler';
+import { notFound } from './middlewares/notFound';
 
-const app = express();
+export const app = express();
 
-// 1. Middlewares generales
 app.use(express.json());
-app.use(morganMiddleware);
 
-// Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', week: '05', project: 'postgresql-prisma' });
+  res.json({ status: 'ok' });
 });
 
-// 2. Rutas del dominio
-app.use('/api/v1/machines', machinesRouter);
+app.use('/api/v1/machine-categories', machineCategoryRouter);
+app.use('/api/v1/machines', machineRouter);
 
-// 3. notFound DESPUÉS de todas las rutas
 app.use(notFound);
-
-// 4. errorHandler como ÚLTIMO middleware (4 parámetros)
 app.use(errorHandler);
-
-export default app;

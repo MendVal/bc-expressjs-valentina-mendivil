@@ -1,10 +1,17 @@
-import app from './app';
-import { logger } from './config/logger';
+import 'dotenv/config';
+import { app } from './app';
+import { connectDB } from './lib/mongoose';
 
-const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
+const PORT = process.env['PORT'] ?? '3000';
 
-app.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
-  logger.info(`Health: http://localhost:${PORT}/health`);
-  logger.info(`API v1: http://localhost:${PORT}/api/v1/machines`);
+async function main(): Promise<void> {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+main().catch((err: unknown) => {
+  console.error(err);
+  process.exit(1);
 });

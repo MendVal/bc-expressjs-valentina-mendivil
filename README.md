@@ -1,100 +1,70 @@
-# 🎮 # Semana 05 — PostgreSQL + Prisma ORM
+# 🎮  Semana 06 — API REST Arcade con MongoDB + Mongoose
 
-**Dominio asignado:** Sala de videojuegos / Arcade
+## Dominio: Sala de videojuegos / Arcade
 
-**Recurso principal:** `Machine` (máquina arcade)
+Este proyecto expone una API REST para gestionar las máquinas de una sala de videojuegos (arcade), usando MongoDB como base de datos y Mongoose como ODM.
 
-**Recurso secundario:** `MachineCategory` (categoría, relación 1:N)
+## Entidades
 
-## Diagrama de entidades
+### MachineCategory (secundaria)
+Representa el tipo o categoría de una máquina (ej. Arcade Clásico, Simuladores, Bailables, Grúas y Premios).
 
-MachineCategory (1) ──────< (N) Machine
+| Campo | Tipo | Descripción |
+|---|---|---|
+| name | String | Nombre único de la categoría |
+| description | String | Descripción opcional |
 
-| MachineCategory | Machine |
-|---|---|
-| id (PK) | id (PK) |
-| name (unique) | name |
-| createdAt | serialCode (unique) |
-| | price |
-| | stock |
-| | active |
-| | categoryId (FK → MachineCategory.id) |
-| | createdAt |
-| | updatedAt |
+### Machine (principal)
+Representa una máquina física del arcade. Cada máquina pertenece a una categoría.
 
-Una `MachineCategory` tiene muchas `Machine` (relación uno a muchos).
+| Campo | Tipo | Descripción |
+|---|---|---|
+| name | String | Nombre de la máquina |
+| category | ObjectId (ref: MachineCategory) | Categoría a la que pertenece |
+| tokenCost | Number | Costo en fichas para jugar |
+| status | String (enum) | `available`, `in_use`, `maintenance` |
+| location | String | Ubicación física en el local |
 
-## Modelos (`prisma/schema.prisma`)
-
-- `MachineCategory`: id, name (único), machines[], createdAt
-- `Machine`: id, name, serialCode (único, para probar error P2002), price, stock, active, categoryId (FK), createdAt, updatedAt
-
-## Manejo de errores Prisma
-
-- `P2025` (registro no encontrado en update/delete) → `AppError(404)`
-- `P2002` (serialCode duplicado) → `AppError(409)`
-- Traducidos automáticamente en `src/middlewares/errorHandler.ts`
+**Relación:** `Machine.category` referencia a `MachineCategory._id`. Al consultar máquinas (`GET /machines` y `GET /machines/:id`), el campo `category` se devuelve **populado** (objeto completo de la categoría, no solo el ID).
 
 ## Endpoints
 
+### Categorías (`/api/v1/machine-categories`)
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/api/v1/machines?page&limit` | Listado paginado (skip/take) |
-| GET | `/api/v1/machines/:id` | Detalle con categoría incluida |
-| POST | `/api/v1/machines` | Crear (valida con Zod) |
-| PUT | `/api/v1/machines/:id` | Actualizar |
-| DELETE | `/api/v1/machines/:id` | Eliminar |
+| GET | `/` | Listar todas las categorías |
+| GET | `/:id` | Obtener una categoría por ID |
+| POST | `/` | Crear categoría |
+| PUT | `/:id` | Actualizar categoría |
+| DELETE | `/:id` | Eliminar categoría |
 
-### Ejemplo — POST /api/v1/machines
+### Máquinas (`/api/v1/machines`)
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/?page=1&limit=10` | Listar con paginación y populate de categoría |
+| GET | `/:id` | Obtener por ID con populate de categoría |
+| POST | `/` | Crear (valida que la categoría exista) |
+| PUT | `/:id` | Actualizar |
+| DELETE | `/:id` | Eliminar |
 
-Request:
+## Manejo de errores
 
-    { "name": "Galaga", "serialCode": "GAL-010", "price": 1.5, "stock": 5, "categoryId": 3 }
+| Situación | Código |
+|---|---|
+| ID con formato inválido (CastError) | 400 |
+| Categoría referenciada no existe | 400 |
+| Recurso no encontrado | 404 |
+| Nombre de categoría duplicado (índice unique, error 11000) | 409 |
 
-Response 201:
+## Cómo correr el proyecto
 
-    {
-      "data": {
-        "id": 7,
-        "name": "Galaga",
-        "serialCode": "GAL-010",
-        "price": 1.5,
-        "stock": 5,
-        "active": true,
-        "categoryId": 3,
-        "createdAt": "2026-08-25T02:00:00.000Z",
-        "updatedAt": "2026-08-25T02:00:00.000Z",
-        "category": { "id": 3, "name": "clasicos", "createdAt": "2026-08-25T01:51:24.963Z" }
-      }
-    }
+```bash
+docker compose up -d
+pnpm install
+pnpm seed
+pnpm dev
+```
 
-### Ejemplo — GET /api/v1/machines/999 (id inexistente)
+## Stack
 
-Response 404:
-
-    { "error": "Not Found", "message": "Recurso no encontrado" }
-
-### Ejemplo — POST con serialCode duplicado
-
-Response 409:
-
-    { "error": "Conflict", "message": "Ya existe un registro con ese valor (serialCode)" }
-
-## Cómo ejecutar
-
-    docker compose up -d
-    pnpm install
-    cp .env.example .env
-    pnpm exec prisma migrate dev --name init
-    pnpm exec prisma db seed
-    pnpm dev
-
-## Logs del seed
-
-    🌱 Iniciando seed...
-    ✅ 6 máquinas creadas
-    ✅ 4 categorías creadas
-
-## Capturas
-
-Ver carpeta `capturas/`: listado paginado, detalle con relación, 404, creación 201, validación 400, conflicto 409, actualización, eliminación, logs de seed y consola, build sin errores.
+Express 5, TypeScript, Mongoose, Zod, MongoDB 7 (Docker)

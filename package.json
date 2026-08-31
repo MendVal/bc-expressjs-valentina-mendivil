@@ -1,8 +1,8 @@
 {
-  "name": "semana03-proyecto-arcade",
+  "name": "arcade-week-06",
   "version": "1.0.0",
-  "description": "Week 05 — PostgreSQL + Prisma ORM (Dominio: Sala de videojuegos / Arcade)",
-  "main": "dist/server.js",
+  "description": "Semana 06 - API REST Arcade con MongoDB + Mongoose",
+  "main": "src/server.ts",
   "engines": {
     "node": ">=22.0.0"
   },
@@ -11,23 +11,17 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "postinstall": "prisma generate"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx src/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "6.8.2",
     "express": "5.1.0",
-    "morgan": "^1.11.0",
-    "winston": "^3.19.0",
-    "zod": "^4.4.3"
+    "mongoose": "9.4.1",
+    "zod": "4.3.6",
+    "dotenv": "16.4.5"
   },
   "devDependencies": {
-    "@types/express": "5.0.1",
-    "@types/morgan": "^1.9.10",
-    "@types/node": "22.15.3",
-    "prisma": "6.8.2",
+    "@types/express": "5.0.3",
+    "@types/node": "22.15.21",
     "tsx": "4.19.4",
     "typescript": "5.8.3"
   }
