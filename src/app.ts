@@ -1,4 +1,6 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
+import authRouter from './routes/auth.routes';
 import machineCategoryRouter from './routes/machineCategory.routes';
 import machineRouter from './routes/machine.routes';
 import { errorHandler } from './middlewares/errorHandler';
@@ -7,11 +9,13 @@ import { notFound } from './middlewares/notFound';
 export const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/machine-categories', machineCategoryRouter);
 app.use('/api/v1/machines', machineRouter);
 

@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { machineController } from '../controllers/machine.controller';
+import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
+
+router.use(authMiddleware);
 
 router.get('/', machineController.findAll);
 router.get('/:id', machineController.findById);
