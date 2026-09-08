@@ -1,7 +1,7 @@
 {
-  "name": "arcade-week-06",
+  "name": "arcade-week-07",
   "version": "1.0.0",
-  "description": "Semana 06 - API REST Arcade con MongoDB + Mongoose",
+  "description": "Semana 07 - Autenticacion JWT con MongoDB + Mongoose",
   "main": "src/server.ts",
   "engines": {
     "node": ">=22.0.0"
