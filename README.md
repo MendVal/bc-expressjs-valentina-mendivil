@@ -1,20 +1,20 @@
-# 🎮  Semana 07 — Autenticación JWT con MongoDB + Mongoose
+# 🎮  Semana 08 — Autorización RBAC y Seguridad con MongoDB + Mongoose
 
 ## Dominio: Sala de videojuegos / Arcade
 
-Este proyecto expone una API REST para gestionar las máquinas de una sala de videojuegos (arcade), usando MongoDB como base de datos, Mongoose como ODM, y autenticación basada en JWT (access + refresh tokens) mediante cookies httpOnly.
+Este proyecto expone una API REST para gestionar las máquinas de una sala de videojuegos (arcade), usando MongoDB como base de datos, Mongoose como ODM, autenticación JWT (access + refresh tokens vía cookies httpOnly), autorización basada en roles (RBAC) y múltiples capas de seguridad (Helmet, CORS, rate limiting, sanitización de inputs).
 
 ## Entidades
 
-### User (autenticación)
-Representa un usuario que puede autenticarse y acceder a los recursos protegidos de la API.
+### User (autenticación y roles)
+Representa un usuario que puede autenticarse y acceder a los recursos de la API según su rol.
 
 | Campo | Tipo | Descripción |
 |---|---|---|
 | email | String | Único, usado como identificador de login |
 | password | String | Hash con bcrypt (nunca se devuelve en las respuestas) |
 | name | String | Nombre del usuario |
-| role | String (enum) | `user`, `admin` |
+| role | String (enum) | `user`, `admin` — determina permisos de escritura |
 | refreshToken | String | Hash del refresh token vigente (nunca se devuelve en las respuestas) |
 
 ### MachineCategory (secundaria)
@@ -42,51 +42,73 @@ Representa una máquina física del arcade. Cada máquina pertenece a una catego
 
 La API usa **JWT con dos tokens**, entregados como cookies `httpOnly`:
 
-- **Access token** — vida corta (15 minutos), se usa para autorizar cada request.
-- **Refresh token** — vida larga (7 días), se usa únicamente para renovar el access token. Se almacena hasheado (bcrypt) en la base de datos y **rota** en cada uso (se invalida el anterior y se emite uno nuevo).
+- **Access token** — vida corta (15 minutos), incluye el `role` del usuario en su payload.
+- **Refresh token** — vida larga (7 días), se usa únicamente para renovar el access token. Se almacena hasheado (bcrypt) en la base de datos y **rota** en cada uso.
 
-Todas las rutas de `machines` y `machine-categories` requieren estar autenticado.
+## Autorización (RBAC)
+
+| Rol | Puede leer (`GET`) | Puede crear/editar/eliminar (`POST`/`PUT`/`DELETE`) |
+|---|---|---|
+| `user` (por defecto) | ✅ Sí, en `machines` y `machine-categories` | ❌ No — devuelve 403 |
+| `admin` | ✅ Sí | ✅ Sí |
+
+El rol viaja en el payload del JWT y se valida en cada request mediante el middleware `requireRole('admin')`, aplicado después de `authMiddleware`.
+
+## Capas de seguridad
+
+| Capa | Herramienta | Configuración |
+|---|---|---|
+| Cabeceras HTTP seguras | `helmet` | Aplicado globalmente (CSP, HSTS, X-Frame-Options, etc.) |
+| CORS | `cors` | Whitelist de orígenes explícitos (no `*`), `credentials: true` para cookies |
+| Rate limiting global | `express-rate-limit` | 100 solicitudes / 15 min en toda la API |
+| Rate limiting en auth | `express-rate-limit` | 5 solicitudes / 15 min en `/register` y `/login` (anti fuerza bruta) |
+| Sanitización de inputs | Middleware propio (`sanitizeInputs`) | Elimina claves con `$` o `.` de `body`, `params` y `query` para prevenir NoSQL injection |
+| Validación de tipos | `zod` | Rechaza payloads con tipos incorrectos (ej. objetos en campos que esperan string) antes de llegar a la base de datos |
+
+**Nota técnica:** se implementó un middleware de sanitización propio en lugar de `express-mongo-sanitize`, ya que esa librería no es compatible con Express 5 (intenta reescribir `req.query`, que en Express 5 es de solo lectura).
 
 ### Endpoints (`/api/v1/auth`)
-| Método | Ruta | Auth requerida | Descripción |
-|---|---|---|---|
-| POST | `/register` | No | Registra un usuario nuevo (hashea la contraseña) |
-| POST | `/login` | No | Verifica credenciales y entrega cookies `accessToken` + `refreshToken` |
-| POST | `/refresh` | No (requiere cookie refreshToken) | Rota ambos tokens |
-| GET | `/me` | Sí | Devuelve el usuario autenticado |
-| POST | `/logout` | Sí | Invalida el refresh token y limpia las cookies |
+| Método | Ruta | Auth requerida | Rate limit | Descripción |
+|---|---|---|---|---|
+| POST | `/register` | No | 5/15min | Registra un usuario nuevo (hashea la contraseña) |
+| POST | `/login` | No | 5/15min | Verifica credenciales y entrega cookies `accessToken` + `refreshToken` |
+| POST | `/refresh` | No (requiere cookie refreshToken) | — | Rota ambos tokens |
+| GET | `/me` | Sí | — | Devuelve el usuario autenticado |
+| POST | `/logout` | Sí | — | Invalida el refresh token y limpia las cookies |
 
-## Endpoints
-
-### Categorías (`/api/v1/machine-categories`) — 🔒 requiere autenticación
-| Método | Ruta | Descripción |
+### Categorías (`/api/v1/machine-categories`)
+| Método | Ruta | Acceso |
 |---|---|---|
-| GET | `/` | Listar todas las categorías |
-| GET | `/:id` | Obtener una categoría por ID |
-| POST | `/` | Crear categoría |
-| PUT | `/:id` | Actualizar categoría |
-| DELETE | `/:id` | Eliminar categoría |
+| GET | `/` | 🔒 Autenticado (cualquier rol) |
+| GET | `/:id` | 🔒 Autenticado (cualquier rol) |
+| POST | `/` | 🔐 Solo `admin` |
+| PUT | `/:id` | 🔐 Solo `admin` |
+| DELETE | `/:id` | 🔐 Solo `admin` |
 
-### Máquinas (`/api/v1/machines`) — 🔒 requiere autenticación
-| Método | Ruta | Descripción |
+### Máquinas (`/api/v1/machines`)
+| Método | Ruta | Acceso |
 |---|---|---|
-| GET | `/?page=1&limit=10` | Listar con paginación y populate de categoría |
-| GET | `/:id` | Obtener por ID con populate de categoría |
-| POST | `/` | Crear (valida que la categoría exista) |
-| PUT | `/:id` | Actualizar |
-| DELETE | `/:id` | Eliminar |
+| GET | `/?page=1&limit=10` | 🔒 Autenticado (cualquier rol) — con paginación y populate de categoría |
+| GET | `/:id` | 🔒 Autenticado (cualquier rol) — con populate de categoría |
+| POST | `/` | 🔐 Solo `admin` |
+| PUT | `/:id` | 🔐 Solo `admin` |
+| DELETE | `/:id` | 🔐 Solo `admin` |
 
 ## Manejo de errores
 
 | Situación | Código |
 |---|---|
 | No autenticado (sin cookie o token inválido/expirado) | 401 |
+| Autenticado pero sin el rol requerido | 403 |
 | Credenciales inválidas en login | 401 |
+| Rate limit excedido en `/auth` o global | 429 |
 | Email ya registrado | 409 |
+| Payload con tipo de dato inválido (ej. intento de NoSQL injection) | 400 |
 | ID con formato inválido (CastError) | 400 |
 | Categoría referenciada no existe | 400 |
 | Recurso no encontrado | 404 |
 | Nombre de categoría duplicado (índice unique, error 11000) | 409 |
+| Error interno inesperado | 500 (sin stack trace expuesto) |
 
 ## Variables de entorno
 
@@ -109,4 +131,4 @@ pnpm dev
 
 ## Stack
 
-Express 5, TypeScript, Mongoose, Zod, JWT (jsonwebtoken), bcrypt, cookie-parser, MongoDB 7 (Docker)
+Express 5, TypeScript, Mongoose, Zod, JWT (jsonwebtoken), bcrypt, cookie-parser, Helmet, CORS, express-rate-limit, MongoDB 7 (Docker)
