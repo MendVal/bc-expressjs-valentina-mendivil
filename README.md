@@ -1,8 +1,8 @@
-# 🎮  Semana 08 — Autorización RBAC y Seguridad con MongoDB + Mongoose
+# 🎮  Semana 09 — Testing con Jest y Supertest
 
 ## Dominio: Sala de videojuegos / Arcade
 
-Este proyecto expone una API REST para gestionar las máquinas de una sala de videojuegos (arcade), usando MongoDB como base de datos, Mongoose como ODM, autenticación JWT (access + refresh tokens vía cookies httpOnly), autorización basada en roles (RBAC) y múltiples capas de seguridad (Helmet, CORS, rate limiting, sanitización de inputs).
+Este proyecto expone una API REST para gestionar las máquinas de una sala de videojuegos (arcade), usando MongoDB como base de datos, Mongoose como ODM, autenticación JWT (access + refresh tokens vía cookies httpOnly), autorización basada en roles (RBAC), múltiples capas de seguridad (Helmet, CORS, rate limiting, sanitización de inputs) y una suite de tests automatizados con Jest + Supertest.
 
 ## Entidades
 
@@ -67,6 +67,38 @@ El rol viaja en el payload del JWT y se valida en cada request mediante el middl
 
 **Nota técnica:** se implementó un middleware de sanitización propio en lugar de `express-mongo-sanitize`, ya que esa librería no es compatible con Express 5 (intenta reescribir `req.query`, que en Express 5 es de solo lectura).
 
+## Testing
+
+Suite completa de tests automatizados con **Jest + ts-jest + Supertest**, cubriendo unit tests (lógica de negocio aislada, con mocks del repositorio) e integration tests (ciclo HTTP completo, contra una base MongoDB de pruebas).
+
+| Archivo | Tipo | Qué cubre |
+|---|---|---|
+| `machine.service.test.ts` | Unit | CRUD de `machine.service.ts` — happy path y errores (404, 400, 409) con repositorio mockeado |
+| `machineCategory.service.test.ts` | Unit | CRUD de `machineCategory.service.ts` — happy path y errores |
+| `auth.service.test.ts` | Unit | Registro, login, refresh (rotación de tokens), logout, getMe — con `bcrypt`, `jwt` y repositorio mockeados |
+| `machine.routes.test.ts` | Integration | Rutas `/api/v1/machines` — 200/201/401/403/404/400 según rol y validación |
+| `machineCategory.routes.test.ts` | Integration | Rutas `/api/v1/machine-categories` — mismos casos que machines |
+| `auth.routes.test.ts` | Integration | Flujo completo: register → login → /me → refresh → logout, incluyendo casos de error (409, 401, 400) |
+
+**Cobertura de código:**
+
+| Métrica | Umbral exigido | Resultado |
+|---|---|---|
+| Statements | 80% | 93.36% |
+| Branches | 70% | 84.48% |
+| Functions | 80% | 96.96% |
+| Lines | 80% | 94.22% |
+
+Los integration tests corren contra una base de datos MongoDB separada (`arcade_test`, mismo contenedor Docker que desarrollo) que se limpia entre tests con `afterEach`/`afterAll`, y usan cookies httpOnly capturadas del login real para simular sesiones de usuario `admin` y `user`.
+
+### Cómo correr los tests
+
+```bash
+pnpm test              # correr toda la suite
+pnpm test:watch        # modo watch
+pnpm test:coverage     # reporte de cobertura
+```
+
 ### Endpoints (`/api/v1/auth`)
 | Método | Ruta | Auth requerida | Rate limit | Descripción |
 |---|---|---|---|---|
@@ -120,6 +152,8 @@ JWT_ACCESS_SECRET=tu-secreto-para-access-token
 JWT_REFRESH_SECRET=tu-secreto-para-refresh-token
 ```
 
+Para correr los tests de integración se usa además un `.env.test` con las mismas variables, apuntando a una base de datos separada (`arcade_test`).
+
 ## Cómo correr el proyecto
 
 ```bash
@@ -131,4 +165,4 @@ pnpm dev
 
 ## Stack
 
-Express 5, TypeScript, Mongoose, Zod, JWT (jsonwebtoken), bcrypt, cookie-parser, Helmet, CORS, express-rate-limit, MongoDB 7 (Docker)
+Express 5, TypeScript, Mongoose, Zod, JWT (jsonwebtoken), bcrypt, cookie-parser, Helmet, CORS, express-rate-limit, MongoDB 7 (Docker), Jest, ts-jest, Supertest.

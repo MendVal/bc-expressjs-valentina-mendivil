@@ -13,7 +13,7 @@ function handleMongooseError(err: unknown): never {
   if (error.name === 'CastError') {
     throw new AppError(400, 'ID inválido');
   }
-  throw err;
+  throw err as Error;
 }
 
 interface PaginatedResult<T> {

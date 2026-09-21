@@ -1,7 +1,7 @@
 {
-  "name": "arcade-week-08",
+  "name": "arcade-week-09",
   "version": "1.0.0",
-  "description": "Semana 08 - RBAC y Seguridad con MongoDB + Mongoose",
+  "description": "Semana 09 - Testing de API REST con Jest y Supertest",
   "main": "src/server.ts",
   "engines": {
     "node": ">=22.0.0"
@@ -11,13 +11,15 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "dotenv": "16.4.5",
     "express": "5.1.0",
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
@@ -30,8 +32,16 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "5.0.3",
+    "@types/jest": "29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "22.15.21",
+    "@types/supertest": "6.0.3",
+    "dotenv": "16.4.5",
+    "jest": "29.7.0",
+    "mongodb-memory-server": "10.1.4",
+    "supertest": "7.1.0",
+    "ts-jest": "29.3.2",
+    "ts-node": "10.9.2",
     "tsx": "4.19.4",
     "typescript": "5.8.3"
   }
